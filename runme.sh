@@ -13,7 +13,7 @@ set -e
 BUILDROOT_VERSION=2020.02.1
 #UEFI_RELEASE=DEBUG
 #BOOT_LOADER=uefi
-#DDR_SPEED=3200
+DDR_SPEED=2600
 #SERDES=8_5_2 # 8x10g
 #SERDES=13_5_2 # dual 100g
 #SERDES=20_5_2 # dual 40g
@@ -156,25 +156,31 @@ case "\$1" in
 		mount /dev/vda /mnt
 		cd /mnt/
 		udhcpc -i eth0
-		wget -c -P /tmp/ http://cdimage.ubuntu.com/ubuntu-base/releases/20.04/release/ubuntu-base-20.04-base-arm64.tar.gz
-		tar zxf /tmp/ubuntu-base-20.04-base-arm64.tar.gz -C /mnt
+		#wget -c -P /tmp/ http://cdimage.ubuntu.com/ubuntu-base/releases/20.04/release/ubuntu-base-20.04-base-arm64.tar.gz
+		curl -k https://alpha.de.repo.voidlinux.org/live/current/void-aarch64-musl-ROOTFS-20191109.tar.xz > /tmp/void-aarch64-musl-ROOTFS-20191109.tar.xz
+		#tar zxf /tmp/ubuntu-base-20.04-base-arm64.tar.gz -C /mnt
+		tar xf /tmp/void-aarch64-musl-ROOTFS-20191109.tar.xz -C /mnt
 		mount -o bind /proc /mnt/proc/
 		mount -o bind /sys/ /mnt/sys/
 		mount -o bind /dev/ /mnt/dev/
 		mount -o bind /dev/pts /mnt/dev/pts
-		mount -t tmpfs tmpfs /mnt/var/lib/apt/
-		mount -t tmpfs tmpfs /mnt/var/cache/apt/
+		#mount -t tmpfs tmpfs /mnt/var/lib/apt/
+		#mount -t tmpfs tmpfs /mnt/var/cache/apt/
+		mount -t tmpfs tmpfs /mnt/var/cache/xbps
 		echo "nameserver 8.8.8.8" > /mnt/etc/resolv.conf
 		echo "localhost" > /mnt/etc/hostname
 		echo "127.0.0.1 localhost" > /mnt/etc/hosts
 		export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C
-		chroot /mnt apt update
-		chroot /mnt apt install --no-install-recommends -y systemd-sysv apt locales less wget procps openssh-server ifupdown net-tools isc-dhcp-client ntpdate lm-sensors i2c-tools psmisc less sudo htop iproute2 iputils-ping kmod network-manager iptables rng-tools apt-utils
+		chroot /mnt xbps-install -Suy xbps
+		chroot /mnt xbps-install -Suy
+		chroot /mnt ln -s /etc/sv/agetty-ttyAMA0 /etc/runit/runsvdir/default/agetty-ttyAMA0
+		#chroot /mnt apt install --no-install-recommends -y systemd-sysv apt locales less wget procps openssh-server ifupdown net-tools isc-dhcp-client ntpdate lm-sensors i2c-tools psmisc less sudo htop iproute2 iputils-ping kmod network-manager iptables rng-tools apt-utils
 		echo -e "root\nroot" | chroot /mnt passwd
 		umount /mnt/var/lib/apt/
-		umount /mnt/var/cache/apt
-		chroot /mnt apt clean
-		chroot /mnt apt autoclean
+		#umount /mnt/var/cache/apt
+		umount /mnt/var/cache/xbps
+		#chroot /mnt apt clean
+		#chroot /mnt apt autoclean
 		reboot
 		;;
 esac
